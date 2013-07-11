@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'dmm/sdk/ruby/version'
+require 'dmm/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "dmm-sdk-ruby"
-  spec.version       = Dmm::Sdk::Ruby::VERSION
+  spec.version       = Dmm::VERSION
   spec.authors       = ["sutoh"]
   spec.email         = ["sutoh.shohei@human-net.co.jp"]
   spec.description   = %q{ dmm-api はXML取得の為、Ruby用のsdk Library作成 }
