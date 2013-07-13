@@ -1,77 +1,162 @@
-require 'aws/version'
-require 'set'
+#-*- encoding: utf-8 -*-
+require 'open-uri'
+require 'rexml/document'
+require 'dmm/version'
 
-module DMM
-  class SvcDetails
-    def initialize class_name, options
-      @class_name = classname
-      @full_name = options[:full_name]
-      @method_name = options[:method_name]
-      @method_alias = options[:method_alias]
-      @old_name = @method_alias || @method_name
+module Dmm
+  module Configuration
+    def initialize(api_id, affiliate_id)
+      @url = 'http://affiliate-api.dmm.com/'
+      @api = api_id
+      @id = affiliate_id
+      @site = 'DMM.co.jp'
+      @version = '2.00'
+      puts 'initialize ok!!'
     end
-    attr_render :class_name, :full_name, :method_name, :method_alias, :old_name
   end
-
-  SERVICES = [
-    SvcDetails.new("Com"
-      :full_name => "DMM.com",
-      :method_name => :com),
-    SvcDetails.new("R18"
-      :full_name => "DMM.r18",
-      :method_name => :r18)
-  ].inject({}) { |h,svc| h[svc.class_name] = svc; h }
-
-  ROOT = File.expand_path(File.join(File.dirname(__FILE__), '..', '..'))
-
-  module Core
-    autoload :Configuration, 'aws/core/configuration'
-      
-    #module XML
-    #end
-
-    #module Http 
-    #end
-  end
-
-  class << self
-    
-    SERVICES.values.each do |svc|
-      define_method(svc.method_name) do |*args|
-        AWS.const_get(svc.class_name).new(args.first || {})
-      end
-      alias_method(svc.method_alias, svc.method_name) if svc.method_alias
-    end
-
-    @@coonfig = nil
-
-    def config options = {}
-      @@config ||= Core::Configuration.new
-      @@config = @@config.with(options) unless options.empty?
-      @@config
-    end
-
-    # Eagerly loads all DMM classes/modules registered with autoload.
-    # @return [void]
-    def eager_autoload! klass_or_module = AWS, visited = Set.new
-      kalass_or_module.constants.each do |const_name|
-        path = klass_or_module.autoload?(const_name)
-        require(path) if path
-        const = klass_or_module.const_get(const_name)
-        if const.is_a?(Module)
-          unless visited.include?(const)
-            visited << const
-            eager_autoload!(const, visited)
-          end
-        end
-      end
-    end 
-  end
-
-  SERVICES.values.each do |svc|
-    autoload(svc.class_name, "aws/"#{svc.old_name}")
-    require "aws/#{svc.old_name}/config"
-  end
-  
 end
 
+module Dmm
+  class Com
+    include Dmm::Configuration
+    
+    #### Search
+    # 検索
+    # @param [String] word 検索キーワード
+    # @return [Hash] APIのレスポンスをXML形式からHash形式に変更したもの
+    def keyword(word, options = {:service => nil, :floor => nil, :hits => 20, :offset => 1, :sort => 'rank'})
+      uri = create_uri(word)
+      xmlbody = get_api(uri)
+      @xmldoc = REXML::Document.new(xmlbody)
+      @hashdoc = from_xml(@xmldoc)
+      @hashdoc
+    end
+    
+
+    #### Hash Analyze
+    # @param [Hash] h DMMAPIのHash化したもの。
+    #  nil ok
+    # @return [Hash] requestの下を返す
+    def get_request(h = nil)
+      h ||= @hashdoc
+      h[:response][:request]
+    end
+    
+    # @param [Hash] h DMMAPIのHash化したもの。
+    #  nil ok
+    # @return [Hash] requestの下を返す
+    def get_result(h = nil)
+      h ||= @hashdoc
+      h[:response][:result]
+    end
+    
+    # @param [Hash] h DMMAPIのHash化したもの。
+    #  nil ok
+    # @return [Hash] requestの下を返す
+    def get_items(h = nil)
+      h ||= @hashdoc
+      h[:response][:result][:items][:item]
+    end
+    
+    # @param [Hash] h DMMAPIのHash化したもの。
+    #  nil ok
+    # @return [Array] titleを返す
+    def get_titles(h = nil)
+      h ||= @hashdoc
+      items = get_items(h)
+      arr = []
+      items.each do |i|
+        arr << i[:title]
+      end
+      arr
+    end
+    
+    # @param [Hash] h DMMAPIのHash化したもの。
+    #  nil ok
+    # @return [Array] 複数のimageとそのTitleを返す
+    #  arr [ {:title => "", :images => ["url"]},...] 
+    def get_title_images(h = nil)
+      h ||= @hashdoc
+      arr = []
+      items = get_items(h)
+      titles = get_titles(h)
+      items.each_with_index do |m, i|
+        arr << { :title => titles[i], :list => m[:imageURL][:list], :small => m[:imageURL][:small], :large => m[:imageURL][:large] }
+      end
+      arr
+    end
+
+    # @param [Hash] h DMMAPIのHash化したもの。
+    #  nil ok
+    # @return [Array] 複数のimageとそのTitleを返す
+    #  arr [ {:title => "", :images => ["url"]},...] 
+    def get_sample_images(h = nil)
+      h ||= @hashdoc
+      arr = []
+      items = get_items
+      titles = get_titles(h)
+      items.each_with_index do |m, i|
+        arr << { :title => titles[i], :images => m[:sampleImageURL][:sample_s][:image]}
+      end
+      arr
+    end
+
+    #util
+    def create_uri(word, options = {})
+      arr = []
+      arr << "api_id=#{@api}"
+      arr << "affiliate_id=#{@id}-991"
+      arr << "operation=ItemList"
+      arr << "version=#{@version}"
+      arr << "timestamp=#{Time.now.strftime("%Y-%m-%d %H:%M:%S")}"
+      arr << "site=#{@site}"
+      arr << "keyword=#{word}"
+      encode_uri = ("#{@url}?#{arr.join('&')}").encode("EUC-JP","UTF-8")
+      URI.escape(encode_uri)
+    end
+
+    def get_api(uri)
+      xml = ""
+      open(uri) do |o|
+        o.each do |l|
+          if /\<parameter\sname/ =~ l
+            # なんでParameterの中に入れるんだろうね(´・ω・｀)
+            # 取り出そうよ
+            b = l.scan(/\"(.*?)\"/).flatten
+            xml << "<#{b[0]}>"
+            xml << "#{b[1]}"
+            xml << "</#{b[0]}>"
+          else
+            xml << l
+          end
+        end
+
+      end
+      xml
+    end
+
+    #rexml
+    def from_xml(rexml)
+      xml_elem_to_hash rexml.root
+    end
+    
+    private
+    def xml_elem_to_hash(elem)
+      value = if elem.has_elements?
+        children = {}
+        elem.each_element do |e|
+          children.merge!(xml_elem_to_hash(e)) do |k,v1,v2|
+            v1.class == Array ?  v1 << v2 : [v1,v2]
+          end
+        end
+        children
+      else
+        elem.text
+      end
+      { elem.name.to_sym => value }
+    end
+
+  end
+end
+# d = Dmm::Com.new
+# d.keyword 'aa'
