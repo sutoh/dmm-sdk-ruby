@@ -26,8 +26,10 @@ module Dmm
     def keyword(word, options = {:service => nil, :floor => nil, :hits => 20, :offset => 1, :sort => 'rank'})
       uri = create_uri(word)
       xmlbody = get_api(uri)
-      xmlbody.encoding
-      @xmldoc = REXML::Document.new(xmlbody)
+      # EUC-JPのまま通過
+      # Railsだとなぜか自動的にUTF-8にしている気が。。
+      xmlbody_enc = (xmlbody.encoding.to_s == "EUC-JP" ? xmlbody : xmlbody.encode("EUC-JP","UTF-8"))
+      @xmldoc = REXML::Document.new(xmlbody_enc)
       @hashdoc = from_xml(@xmldoc)
       @hashdoc
     end
@@ -119,20 +121,22 @@ module Dmm
       xml = ""
       open(uri) do |o|
         o.each do |l|
-          if /\<parameter\sname/ =~ l
-            # なんでParameterの中に入れるんだろうね(´・ω・｀)
-            # 取り出そうよ
-            b = l.scan(/\"(.*?)\"/).flatten
-            xml << "<#{b[0]}>"
-            xml << "#{b[1]}"
-            xml << "</#{b[0]}>"
-          else
+         # if /\<parameter\sname/ =~ l
+         #   # なんでParameterの中に入れるんだろうね(´・ω・｀)
+         #   # 取り出そうよ
+         #   b = l.scan(/\"(.*?)\"/).flatten
+         #   xml << "<#{b[0]}>"
+         #   xml << "#{b[1]}"
+         #   xml << "</#{b[0]}>"
+         #   xml << "\n"
+         # else
             xml << l
-          end
+         # end
         end
 
       end
-      xml.force_encoding("utf-8")
+      #xml.force_encoding("utf-8")
+      xml
     end
 
     #rexml
