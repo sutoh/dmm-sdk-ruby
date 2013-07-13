@@ -1,14 +1,13 @@
 #-*- encoding: utf-8 -*-
 require 'open-uri'
 require 'rexml/document'
-require 'dmm/version'
 
 module Dmm
   module Configuration
-    def initialize(api_id, affiliate_id)
+    def initialize(api_id=nil,affiliate_id=nil)
       @url = 'http://affiliate-api.dmm.com/'
-      @api = api_id
-      @id = affiliate_id
+      @api = api_id.nil? ? 'edu1FFKxWMqbHxf1fZFH' : api_id
+      @id = affiliate_id.nil? ? 'penix' : affiliate_id
       @site = 'DMM.co.jp'
       @version = '2.00'
       puts 'initialize ok!!'
@@ -27,6 +26,7 @@ module Dmm
     def keyword(word, options = {:service => nil, :floor => nil, :hits => 20, :offset => 1, :sort => 'rank'})
       uri = create_uri(word)
       xmlbody = get_api(uri)
+      xmlbody.encoding
       @xmldoc = REXML::Document.new(xmlbody)
       @hashdoc = from_xml(@xmldoc)
       @hashdoc
@@ -132,7 +132,7 @@ module Dmm
         end
 
       end
-      xml
+      xml.force_encoding("utf-8")
     end
 
     #rexml
