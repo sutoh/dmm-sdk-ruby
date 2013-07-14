@@ -95,7 +95,7 @@ module Dmm
       arr = []
       items = get_items(h)
       items.each do |m|
-        arr << { :title => m[:title], :affiliate_id => m[:affiliate_id], :images => m[:sampleImageURL][:sample_s][:image]}
+        arr << { :title => m[:title], :affiliateURL => m[:affiliateURL], :images => m[:sampleImageURL][:sample_s][:image]}
       end
       arr
     end
