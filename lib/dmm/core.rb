@@ -6,19 +6,18 @@ module Dmm
   module Configuration
     def initialize(api_id=nil,affiliate_id=nil)
       @url = 'http://affiliate-api.dmm.com/'
-      @api = api_id.nil? ? 'edu1FFKxWMqbHxf1fZFH' : api_id
-      @id = affiliate_id.nil? ? 'penix' : affiliate_id
+      @api = api_id.nil? ? ENV['DMM_API_ID'] : api_id
+      @id = affiliate_id.nil? ? ENV['DMM_AFFILIATE_ID'] : affiliate_id
       @site = 'DMM.co.jp'
       @version = '2.00'
       puts 'initialize ok!!'
+      puts ENV['DMM_API_ID']
+      puts ENV['DMM_AFFILIATE_ID']
     end
   end
 end
-
 module Dmm
-  class Com
-    include Dmm::Configuration
-    
+  module Util
     #### Search
     # 検索
     # @param [String] word 検索キーワード
@@ -159,8 +158,21 @@ module Dmm
       end
       { elem.name.to_sym => value }
     end
-
   end
 end
-# d = Dmm::Com.new
-# d.keyword 'aa'
+
+module Dmm
+  class R18
+    @site = "DMM.co.jp"
+    include Dmm::Configuration
+    include Dmm::Util
+  end
+end
+
+module Dmm
+  class Com
+    @site = "DMM.com"
+    include Dmm::Configuration
+    include Dmm::Util
+  end
+end
