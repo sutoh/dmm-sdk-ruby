@@ -66,8 +66,8 @@ module Dmm
       h ||= @hashdoc
       items = get_items(h)
       arr = []
-      items.each do |i|
-        arr << i[:title]
+      items.each do |m|
+        arr << { :title => m[:title], :affiliate_id => m[:affiliate_id] }
       end
       arr
     end
@@ -80,13 +80,12 @@ module Dmm
       h ||= @hashdoc
       arr = []
       items = get_items(h)
-      titles = get_titles(h)
-      items.each_with_index do |m, i|
-        arr << { :title => titles[i], :list => m[:imageURL][:list], :small => m[:imageURL][:small], :large => m[:imageURL][:large] }
+      items.each do |m|
+        arr << { :title => m[:title], :affiliate_id => m[:affiliate_id], :list => m[:imageURL][:list], :small => m[:imageURL][:small], :large => m[:imageURL][:large] }
       end
       arr
     end
-
+    
     # @param [Hash] h DMMAPIのHash化したもの。
     #  nil ok
     # @return [Array] 複数のimageとそのTitleを返す
@@ -94,10 +93,9 @@ module Dmm
     def get_sample_images(h = nil)
       h ||= @hashdoc
       arr = []
-      items = get_items
-      titles = get_titles(h)
-      items.each_with_index do |m, i|
-        arr << { :title => titles[i], :images => m[:sampleImageURL][:sample_s][:image]}
+      items = get_items(h)
+      items.each do |m|
+        arr << { :title => titles[i], :affiliate_id => m[:affiliate_id], :images => m[:sampleImageURL][:sample_s][:image]}
       end
       arr
     end
@@ -120,21 +118,20 @@ module Dmm
       xml = ""
       open(uri) do |o|
         o.each do |l|
-         # if /\<parameter\sname/ =~ l
-         #   # なんでParameterの中に入れるんだろうね(´・ω・｀)
-         #   # 取り出そうよ
-         #   b = l.scan(/\"(.*?)\"/).flatten
-         #   xml << "<#{b[0]}>"
-         #   xml << "#{b[1]}"
-         #   xml << "</#{b[0]}>"
-         #   xml << "\n"
-         # else
+          if /\<parameter\sname/ =~ l
+            # なんでParameterの中に入れるんだろうね(´・ω・｀)
+            # 取り出そうよ
+            b = l.scan(/\"(.*?)\"/).flatten
+            xml << "<#{b[0]}>"
+            xml << "#{b[1]}"
+            xml << "</#{b[0]}>"
+            xml << "\n"
+          else
             xml << l
-         # end
+          end
         end
 
       end
-      #xml.force_encoding("utf-8")
       xml
     end
 
