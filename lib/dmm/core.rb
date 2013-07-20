@@ -8,11 +8,10 @@ module Dmm
       @url = 'http://affiliate-api.dmm.com/'
       @api = api_id.nil? ? ENV['DMM_API_ID'] : api_id
       @id = affiliate_id.nil? ? ENV['DMM_AFFILIATE_ID'] : affiliate_id
-      @site = 'DMM.co.jp'
       @version = '2.00'
-      puts 'initialize ok!!'
-      puts ENV['DMM_API_ID']
-      puts ENV['DMM_AFFILIATE_ID']
+      site
+      puts "API_ID= #{ENV['DMM_API_ID']}"
+      puts "AFFILIATE_ID= #{ENV['DMM_AFFILIATE_ID']}"
     end
   end
 end
@@ -93,11 +92,62 @@ module Dmm
     def get_sample_images(h = nil)
       h ||= @hashdoc
       arr = []
+      if h.nil?
+        return no_image(1)
+      end
+      if get_result_count(h) == "0"
+        return no_image(2)
+      end
       items = get_items(h)
       items.each do |m|
-        arr << { :title => m[:title], :affiliateURL => m[:affiliateURL], :images => m[:sampleImageURL][:sample_s][:image]}
+        #Valid
+        if m[:sampleImageURL].nil?
+          next
+        end
+        if m[:sampleImageURL][:sample_s].nil?
+          next
+        end
+        if m[:sampleImageURL][:sample_s][:image].nil?
+          next
+        end
+        # あった
+        arr << { 
+          :title => m[:title], 
+          :affiliateURL => m[:affiliateURL], 
+          :images => m[:sampleImageURL][:sample_s][:image]
+        }
+      end
+      if arr.empty?
+        arr << no_image(3)
       end
       arr
+    end
+
+    def get_result_count(h=nil)
+      h ||= @hashdoc
+      h[:response][:result][:result_count]
+    end
+
+    #util_valid
+    def no_image(i)
+      err_str = case i 
+      when 1
+        "検索してないよ"
+      when 2
+        "検索結果は0件"
+      when 3
+        "すまない。sample_imageはないんだ(´・ω・｀)"
+      else
+        "no_imageは直接呼び出さないでくれ"
+      end
+
+        hash = { 
+          :title => 'I do not have an image', 
+          :affiliateURL => 'http://www.dmm.com/top/#{@id}-001', 
+          :images => 'http://pics.dmm.com/af/c_top/125_125.jpg',
+          :err => err_str
+        }
+        hash
     end
 
     #util
@@ -160,7 +210,9 @@ end
 
 module Dmm
   class R18
-    @site = "DMM.co.jp"
+    def site
+      @site = "DMM.co.jp"
+    end
     include Dmm::Configuration
     include Dmm::Util
   end
@@ -168,7 +220,9 @@ end
 
 module Dmm
   class Com
-    @site = "DMM.com"
+    def site
+      @site = "DMM.com"
+    end
     include Dmm::Configuration
     include Dmm::Util
   end
