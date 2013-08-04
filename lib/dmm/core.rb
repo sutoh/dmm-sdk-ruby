@@ -23,6 +23,7 @@ module Dmm
     # @return [Hash] APIのレスポンスをXML形式からHash形式に変更したもの
     def keyword(word, options = {:service => nil, :floor => nil, :hits => 20, :offset => 1, :sort => 'rank'})
       uri = create_uri(word)
+      @keyword = word
       xmlbody = get_api(uri)
       # EUC-JPのまま通過
       # Railsだとなぜか自動的にUTF-8にしている気が。。
@@ -32,6 +33,9 @@ module Dmm
       @hashdoc
     end
     
+    def what_keyword
+      @keyword
+    end
 
     #### Hash Analyze
     # @param [Hash] h DMMAPIのHash化したもの。
