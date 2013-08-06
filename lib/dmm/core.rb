@@ -21,8 +21,8 @@ module Dmm
     # 検索
     # @param [String] word 検索キーワード
     # @return [Hash] APIのレスポンスをXML形式からHash形式に変更したもの
-    def keyword(word, options = {:service => nil, :floor => nil, :hits => 20, :offset => 1, :sort => 'rank'})
-      uri = create_uri(word)
+    def keyword(word, service: nil, floor: nil, hits: 20, offset: 1, sort: 'date')
+      uri = create_uri(word, service:service, floor:floor, hits:hits , offset:offset, sort:sort)
       @keyword = word
       xmlbody = get_api(uri)
       # EUC-JPのまま通過
@@ -155,7 +155,7 @@ module Dmm
     end
 
     #util
-    def create_uri(word, options = {})
+    def create_uri(word, service: nil, floor: nil, hits: 1, offset: 1, sort: 'rank')
       arr = []
       arr << "api_id=#{@api}"
       arr << "affiliate_id=#{@id}-991"
@@ -164,6 +164,11 @@ module Dmm
       arr << "timestamp=#{Time.now.strftime("%Y-%m-%d %H:%M:%S")}"
       arr << "site=#{@site}"
       arr << "keyword=#{word}"
+      arr << "service=#{service}" if service 
+      arr << "floor=#{floor}" if floor
+      arr << "hits=#{hits}" if hits
+      arr << "offset=#{offset}" if offset
+      arr << "sort=#{sort}" if sort
       encode_uri = ("#{@url}?#{arr.join('&')}").encode("EUC-JP","UTF-8")
       URI.escape(encode_uri)
     end
